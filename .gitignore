@@ -169,3 +169,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+save_model/
+extracted_frames/
+idd_temporal_train_4/
+runs/
+

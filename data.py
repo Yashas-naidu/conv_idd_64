@@ -5,102 +5,81 @@ import torch
 import torch.utils.data as data
 from torch.utils.data import DataLoader
 import random
+import glob
 
-# Step 1: Extract all frames from the video (60 frames per second)
-def extract_frames(video_path, output_folder, train_split_ratio=0.8):
-    """Extract all frames from a video and save them to train and validation folders."""
-    train_folder = os.path.join(output_folder, 'train')
-    val_folder = os.path.join(output_folder, 'validation')
-    
-    # Create output folders
-    os.makedirs(train_folder, exist_ok=True)
-    os.makedirs(val_folder, exist_ok=True)
-    
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        raise ValueError(f"Could not open video: {video_path}")
-    
-    # Get video properties
-    fps = cap.get(cv2.CAP_PROP_FPS)  # Frames per second
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))  # Total frames in the video
-    duration = frame_count / fps  # Total duration in seconds
-    
-    print(f"Video FPS: {fps}")
-    print(f"Total frames: {frame_count}")
-    print(f"Duration: {duration:.2f} seconds")
-    
-    saved_frame_count = 0
-    train_count = 0
-    val_count = 0
-    
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-        
-        # Randomly split into train and validation sets
-        if random.random() < train_split_ratio:
-            frame_filename = os.path.join(train_folder, f"frame_{train_count:04d}.jpg")
-            train_count += 1
-        else:
-            frame_filename = os.path.join(val_folder, f"frame_{val_count:04d}.jpg")
-            val_count += 1
-        
-        cv2.imwrite(frame_filename, frame)
-        saved_frame_count += 1
-    
-    cap.release()
-    print(f"Finished extracting {saved_frame_count} frames")
-    print(f"Train frames: {train_count}")
-    print(f"Validation frames: {val_count}")
-
-# Step 2: Dataset class for RGB car videos
-class MovingCarsRGB(data.Dataset):
-    def __init__(self, frames_folder, n_frames_input, n_frames_output, 
-                 target_size=256, transform=None):
+class IDDTemporalDataset(data.Dataset):
+    def __init__(self, sequence_folders, n_frames_input, n_frames_output, 
+                 target_size=64, transform=None, include_sequence_info=False):
         '''
-        Dataset for high-resolution car videos with colored (RGB) frames
+        Dataset for IDD temporal data with colored (RGB) frames
         
         Args:
-            frames_folder: path to the folder containing extracted frames
+            sequence_folders: list of paths to sequence folders (e.g., paths to *_leftImg8bit folders)
             n_frames_input: number of input frames
             n_frames_output: number of output frames to predict
             target_size: size to resize frames to (square dimensions for the model)
             transform: optional additional transformations
+            include_sequence_info: whether to include sequence information in output
         '''
-        super(MovingCarsRGB, self).__init__()
+        super(IDDTemporalDataset, self).__init__()
         
-        self.frames_folder = frames_folder
+        self.sequence_folders = sequence_folders
         self.n_frames_input = n_frames_input
         self.n_frames_output = n_frames_output
         self.n_frames_total = n_frames_input + n_frames_output
         self.target_size = target_size
         self.transform = transform
+        self.include_sequence_info = include_sequence_info
         
-        # Load RGB video frames
-        self.frames = self.load_frames_from_folder()
-        self.length = max(1, len(self.frames) - self.n_frames_total + 1)
+        # Process sequences and build index mapping
+        self.sequences = self.process_sequences()
+        self.index_mapping = self.create_index_mapping()
+        self.length = len(self.index_mapping)
     
-    def load_frames_from_folder(self):
-        """Load and preprocess frames from the folder"""
-        frames = []
-        frame_files = sorted(os.listdir(self.frames_folder))
+    def process_sequences(self):
+        """Process all sequence folders and identify valid frames"""
+        sequences = []
         
-        for frame_file in frame_files:
-            frame_path = os.path.join(self.frames_folder, frame_file)
-            frame = cv2.imread(frame_path)
-            if frame is None:
-                continue
+        for seq_folder in self.sequence_folders:
+            # Extract category and sequence IDs from folder path
+            parts = seq_folder.split(os.sep)
+            category_id = parts[-2]  # e.g., "00163"
+            sequence_id = parts[-1]  # e.g., "155270_leftImg8bit"
             
-            # Process the high-resolution RGB frame
-            processed_frame = self.preprocess_frame(frame)
-            frames.append(processed_frame)
+            # Find all jpeg files in the sequence folder
+            frame_files = sorted(glob.glob(os.path.join(seq_folder, "*.jpeg")))
+            
+            # Only include sequences with enough frames
+            if len(frame_files) >= self.n_frames_total:
+                sequences.append({
+                    'folder': seq_folder,
+                    'frames': frame_files,
+                    'category': category_id,
+                    'sequence': sequence_id,
+                    'name': f"{category_id}_{sequence_id}"
+                })
+            else:
+                print(f"Warning: Skipping sequence {seq_folder} with only {len(frame_files)} frames (need {self.n_frames_total})")
         
-        print(f"Loaded {len(frames)} frames from {self.frames_folder}")
-        return frames
+        print(f"Found {len(sequences)} valid sequences with {self.n_frames_total}+ frames")
+        return sequences
+    
+    def create_index_mapping(self):
+        """Create a mapping from dataset indices to (sequence_idx, frame_idx)"""
+        index_mapping = []
+        
+        for seq_idx, sequence in enumerate(self.sequences):
+            n_frames = len(sequence['frames'])
+            
+            # Add indices for all valid frame sequences
+            for frame_idx in range(n_frames - self.n_frames_total + 1):
+                index_mapping.append((seq_idx, frame_idx))
+        
+        print(f"Created {len(index_mapping)} valid frame sequences for training/validation")
+        return index_mapping
     
     def preprocess_frame(self, frame):
-        """Process a high-resolution frame in RGB"""
+        """Process a frame in RGB"""
         # Convert BGR (OpenCV default) to RGB
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
@@ -117,15 +96,27 @@ class MovingCarsRGB(data.Dataset):
         if idx >= self.length:
             raise IndexError(f"Index {idx} out of range for dataset of length {self.length}")
         
-        # Get sequence of frames
-        sequence = self.frames[idx:idx + self.n_frames_total]
-        sequence = np.array(sequence)
+        # Get sequence and frame indices
+        seq_idx, frame_idx = self.index_mapping[idx]
+        sequence = self.sequences[seq_idx]
+        
+        # Get frames for this sequence
+        frames = []
+        for i in range(self.n_frames_total):
+            frame_path = sequence['frames'][frame_idx + i]
+            frame = cv2.imread(frame_path)
+            if frame is None:
+                raise ValueError(f"Failed to load image: {frame_path}")
+            frame = self.preprocess_frame(frame)
+            frames.append(frame)
+        
+        sequence_frames = np.array(frames)
         
         # Split into input and output
-        input_frames = sequence[:self.n_frames_input]
+        input_frames = sequence_frames[:self.n_frames_input]
         
         if self.n_frames_output > 0:
-            output_frames = sequence[self.n_frames_input:self.n_frames_total]
+            output_frames = sequence_frames[self.n_frames_input:self.n_frames_total]
         else:
             output_frames = np.array([])
         
@@ -141,39 +132,77 @@ class MovingCarsRGB(data.Dataset):
         else:
             output_tensor = torch.tensor([])
         
-        # Format to match the original MovingMNIST structure
+        # Extra info for debugging/tracking
+        if self.include_sequence_info:
+            info = {
+                'sequence_name': sequence['name'],
+                'category': sequence['category'],
+                'sequence_id': sequence['sequence'],
+                'frame_idx': frame_idx,
+                'frame_paths': sequence['frames'][frame_idx:frame_idx + self.n_frames_total]
+            }
+            return [idx, output_tensor, input_tensor, frozen, info]
+        
+        # Format to match the original structure
         # [idx, output_frames, input_frames, frozen, _]
         return [idx, output_tensor, input_tensor, frozen, np.zeros(1)]
     
     def __len__(self):
         return self.length
 
-# Step 3: Create the dataset and DataLoader
-def create_rgb_car_dataset(
-    video_path, 
-    n_frames_input=10, 
+def find_all_sequence_folders(dataset_root):
+    """Find all sequence folders in the dataset"""
+    sequence_folders = []
+    
+    # Walk through the dataset structure
+    for category_folder in os.listdir(dataset_root):
+        category_path = os.path.join(dataset_root, category_folder)
+        
+        if os.path.isdir(category_path):
+            # For each category, find all sequence folders
+            for sequence_folder in os.listdir(category_path):
+                if sequence_folder.endswith('_leftImg8bit'):
+                    sequence_path = os.path.join(category_path, sequence_folder)
+                    sequence_folders.append(sequence_path)
+    
+    print(f"Found {len(sequence_folders)} total sequence folders")
+    return sequence_folders
+
+def create_idd_datasets(
+    dataset_root,
+    n_frames_input=10,
     n_frames_output=10,
     target_size=64,
-    train_split_ratio=0.8
+    train_split_ratio=0.8,
+    seed=42
 ):
-    """Create a colored (RGB) dataset from a car video file"""
-    # Extract frames first (all frames)
-    output_folder = os.path.join(os.path.dirname(video_path), "extracted_frames")
-    extract_frames(video_path, output_folder, train_split_ratio)
+    """Create train and validation datasets from IDD temporal data"""
+    # Set random seed for reproducibility
+    random.seed(seed)
+    
+    # Find all sequence folders
+    all_sequence_folders = find_all_sequence_folders(dataset_root)
+    
+    # Shuffle and split into train and validation sets
+    random.shuffle(all_sequence_folders)
+    split_idx = int(len(all_sequence_folders) * train_split_ratio)
+    
+    train_sequences = all_sequence_folders[:split_idx]
+    val_sequences = all_sequence_folders[split_idx:]
+    
+    print(f"Train sequences: {len(train_sequences)}")
+    print(f"Validation sequences: {len(val_sequences)}")
     
     # Create train and validation datasets
-    train_folder = os.path.join(output_folder, 'train')
-    val_folder = os.path.join(output_folder, 'validation')
-    
-    train_dataset = MovingCarsRGB(
-        frames_folder=train_folder,
+    train_dataset = IDDTemporalDataset(
+        sequence_folders=train_sequences,
         n_frames_input=n_frames_input,
         n_frames_output=n_frames_output,
         target_size=target_size
     )
     
-    val_dataset = MovingCarsRGB(
-        frames_folder=val_folder,
+    val_dataset = IDDTemporalDataset(
+        sequence_folders=val_sequences,
         n_frames_input=n_frames_input,
         n_frames_output=n_frames_output,
         target_size=target_size
@@ -184,29 +213,33 @@ def create_rgb_car_dataset(
 # Main execution block
 if __name__ == '__main__':
     # Example usage
-    video_path = r'C:\Users\YASHAS\capstone\baselines\conv_idd_64\Cars.mp4'  # Replace with your actual video path
-
+    dataset_root = 'idd_temporal_train_4'  # Path to your dataset
+    
     # Create the datasets
-    train_dataset, val_dataset = create_rgb_car_dataset(
-        video_path=video_path,
+    train_dataset, val_dataset = create_idd_datasets(
+        dataset_root=dataset_root,
         n_frames_input=10,
         n_frames_output=10,
         target_size=64,
         train_split_ratio=0.8
     )
 
+    print(f"Train dataset size: {len(train_dataset)}")
+    print(f"Validation dataset size: {len(val_dataset)}")
+
     # Create DataLoaders for train and validation
     train_dataloader = DataLoader(
         train_dataset,
-        batch_size=8,           # Adjust based on your GPU memory
+        batch_size=8,          # Adjust based on your GPU memory
         shuffle=True,
-        num_workers=4           # For parallel loading
+        num_workers=4,         # For parallel loading
+        pin_memory=True        # Speeds up transfer to GPU
     )
 
     val_dataloader = DataLoader(
         val_dataset,
-        batch_size=8,           # Adjust based on your GPU memory
+        batch_size=8,          # Adjust based on your GPU memory
         shuffle=False,
-        num_workers=4           # For parallel loading
+        num_workers=4,         # For parallel loading
+        pin_memory=True        # Speeds up transfer to GPU
     )
-

@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import DataLoader
 import numpy as np
 import matplotlib.pyplot as plt
-from data import MovingCarsRGB  # Updated import
+from data import create_idd_datasets  # Updated import
 from encoder import Encoder
 from decoder import Decoder
 from model import ED
@@ -15,7 +15,7 @@ decoder = Decoder(decoder_params[0], decoder_params[1])
 net = ED(encoder, decoder)
 
 # Load the checkpoint
-checkpoint_path = r'C:\Users\YASHAS\capstone\baselines\conv_idd_64\save_model\2020-03-09T00-00-00\checkpoint_1_0.001856.pth.tar'
+checkpoint_path = r'C:\Users\YASHAS\capstone\baselines\conv_idd_64\save_model\2020-03-09T00-00-00\checkpoint_0_0.004469.pth.tar'
 checkpoint = torch.load(checkpoint_path)
 
 # Load the model state dict
@@ -29,15 +29,17 @@ net.to(device)
 net.eval()
 
 # Prepare the data
-frames_folder = r'C:\Users\YASHAS\capstone\baselines\conv_idd_64\extracted_frames\validation'  # Path to the folder containing frames
-validFolder = MovingCarsRGB(
-    frames_folder=frames_folder,
+dataset_root = r'C:\Users\YASHAS\capstone\baselines\conv_idd_64\idd_temporal_train_4'  # Path to the dataset root folder
+_, val_dataset = create_idd_datasets(
+    dataset_root=dataset_root,
     n_frames_input=10,
     n_frames_output=10,
-    target_size=64
+    target_size=64,
+    train_split_ratio=0.8,
+    seed=42
 )
 
-validLoader = DataLoader(validFolder, batch_size=4, shuffle=False)
+validLoader = DataLoader(val_dataset, batch_size=4, shuffle=False)
 
 # Parameters for limiting predictions
 num_batches_to_process = 1  # Number of batches to process
@@ -45,7 +47,7 @@ num_samples_per_batch = 1   # Number of samples per batch to process
 
 # Make predictions and display input vs predicted vs ground truth frames
 with torch.no_grad():
-    for batch_idx, (idx, targetVar, inputVar, _, _) in enumerate(validLoader):
+    for batch_idx, (idx, targetVar, inputVar, frozen, _) in enumerate(validLoader):
         if batch_idx >= num_batches_to_process:
             break  # Stop after processing the specified number of batches
 

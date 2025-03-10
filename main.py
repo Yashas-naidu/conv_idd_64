@@ -4,7 +4,7 @@ from encoder import Encoder
 from decoder import Decoder
 from model import ED
 from net_params import convlstm_encoder_params, convlstm_decoder_params, convgru_encoder_params, convgru_decoder_params
-from data import create_rgb_car_dataset, MovingCarsRGB
+from data import create_idd_datasets  # Import the new dataset creation function
 import torch
 from torch import nn
 from torch.optim import lr_scheduler
@@ -27,7 +27,7 @@ parser.add_argument('-cgru',
                     help='use convgru as base cell',
                     action='store_true')
 parser.add_argument('--batch_size',
-                    default=4,
+                    default=5,
                     type=int,
                     help='mini-batch size')
 parser.add_argument('-lr', default=1e-4, type=float, help='G learning rate')
@@ -39,10 +39,10 @@ parser.add_argument('-frames_output',
                     default=10,
                     type=int,
                     help='sum of predict frames')
-parser.add_argument('-epochs', default=1, type=int, help='sum of epochs')
+parser.add_argument('-epochs', default=0, type=int, help='sum of epochs')
 parser.add_argument('--video_path', 
                     type=str,
-                    default=r"C:\Users\YASHAS\capstone\baselines\conv_idd_64\extracted_frames",
+                    default=r"C:\Users\YASHAS\capstone\baselines\conv_idd_64\idd_temporal_train_4",
                     help='Path to the input video file or extracted frames directory')
 args = parser.parse_args()
 
@@ -58,53 +58,47 @@ torch.backends.cudnn.benchmark = False
 
 save_dir = './save_model/' + TIMESTAMP
 
-# Create train and validation datasets
-if os.path.isdir(args.video_path):
-    # If path is already an extracted frames directory
-    trainFolder = MovingCarsRGB(
-        frames_folder=os.path.join(args.video_path, 'train'),
-        n_frames_input=args.frames_input,
-        n_frames_output=args.frames_output,
-        target_size=64
-    )
-    validFolder = MovingCarsRGB(
-        frames_folder=os.path.join(args.video_path, 'validation'),
-        n_frames_input=args.frames_input,
-        n_frames_output=args.frames_output,
-        target_size=64
-    )
-else:
-    # If path is a video file
-    trainFolder, validFolder = create_rgb_car_dataset(
-        video_path=args.video_path,
-        n_frames_input=args.frames_input,
-        n_frames_output=args.frames_output,
-        target_size=64,
-        train_split_ratio=0.8
-    )
-
-# Create DataLoaders
-trainLoader = torch.utils.data.DataLoader(trainFolder,
-                                          batch_size=args.batch_size,
-                                          shuffle=True)
-validLoader = torch.utils.data.DataLoader(validFolder,
-                                          batch_size=args.batch_size,
-                                          shuffle=False)
-
-if args.convlstm:
-    encoder_params = convlstm_encoder_params
-    decoder_params = convlstm_decoder_params
-if args.convgru:
-    encoder_params = convgru_encoder_params
-    decoder_params = convgru_decoder_params
-else:
-    encoder_params = convgru_encoder_params
-    decoder_params = convgru_decoder_params
-
 def train():
     '''
     main function to run the training
     '''
+    # Create train and validation datasets using IDDTemporalDataset
+    train_dataset, val_dataset = create_idd_datasets(
+        dataset_root=args.video_path,
+        n_frames_input=args.frames_input,
+        n_frames_output=args.frames_output,
+        target_size=64,
+        train_split_ratio=0.8,
+        seed=random_seed
+    )
+
+    # Create DataLoaders
+    trainLoader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=8,  # Temporarily set to 0 to debug
+        pin_memory=True
+    )
+
+    validLoader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=8,  # Temporarily set to 0 to debug
+        pin_memory=True
+    )
+
+    if args.convlstm:
+        encoder_params = convlstm_encoder_params
+        decoder_params = convlstm_decoder_params
+    if args.convgru:
+        encoder_params = convgru_encoder_params
+        decoder_params = convgru_decoder_params
+    else:
+        encoder_params = convgru_encoder_params
+        decoder_params = convgru_decoder_params
+
     encoder = Encoder(encoder_params[0], encoder_params[1]).cuda()
     decoder = Decoder(decoder_params[0], decoder_params[1]).cuda()
     net = ED(encoder, decoder)

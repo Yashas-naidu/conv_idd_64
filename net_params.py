@@ -12,9 +12,9 @@ convlstm_encoder_params = [
     ],
 
     [
-        CLSTM_cell(shape=(64,64), input_channels=16, filter_size=5, num_features=64),
-        CLSTM_cell(shape=(32,32), input_channels=64, filter_size=5, num_features=96),
-        CLSTM_cell(shape=(16,16), input_channels=96, filter_size=5, num_features=96)
+        CLSTM_cell(shape=(128, 128), input_channels=16, filter_size=5, num_features=64),
+        CLSTM_cell(shape=(64, 64), input_channels=64, filter_size=5, num_features=96),
+        CLSTM_cell(shape=(32, 32), input_channels=96, filter_size=5, num_features=96)
     ]
 ]
 
@@ -29,12 +29,11 @@ convlstm_decoder_params = [
     ],
 
     [
-        CLSTM_cell(shape=(16,16), input_channels=96, filter_size=5, num_features=96),
-        CLSTM_cell(shape=(32,32), input_channels=96, filter_size=5, num_features=96),
-        CLSTM_cell(shape=(64,64), input_channels=96, filter_size=5, num_features=64),
+        CLSTM_cell(shape=(32, 32), input_channels=96, filter_size=5, num_features=96),
+        CLSTM_cell(shape=(64, 64), input_channels=96, filter_size=5, num_features=96),
+        CLSTM_cell(shape=(128, 128), input_channels=96, filter_size=5, num_features=64),
     ]
 ]
-
 convgru_encoder_params = [
     [
         OrderedDict({'conv1_leaky_1': [3, 16, 3, 1, 1]}),
@@ -43,9 +42,9 @@ convgru_encoder_params = [
     ],
 
     [
-        CGRU_cell(shape=(64,64), input_channels=16, filter_size=5, num_features=64),
-        CGRU_cell(shape=(32,32), input_channels=64, filter_size=5, num_features=96),
-        CGRU_cell(shape=(16,16), input_channels=96, filter_size=5, num_features=96)
+        CGRU_cell(shape=(128, 128), input_channels=16, filter_size=5, num_features=64),
+        CGRU_cell(shape=(64, 64), input_channels=64, filter_size=5, num_features=96),
+        CGRU_cell(shape=(32, 32), input_channels=96, filter_size=5, num_features=96)
     ]
 ]
 
@@ -60,8 +59,8 @@ convgru_decoder_params = [
     ],
 
     [
-        CGRU_cell(shape=(16,16), input_channels=96, filter_size=5, num_features=96),
-        CGRU_cell(shape=(32,32), input_channels=96, filter_size=5, num_features=96),
-        CGRU_cell(shape=(64,64), input_channels=96, filter_size=5, num_features=64),
+        CGRU_cell(shape=(32, 32), input_channels=96, filter_size=5, num_features=96),
+        CGRU_cell(shape=(64, 64), input_channels=96, filter_size=5, num_features=96),
+        CGRU_cell(shape=(128, 128), input_channels=96, filter_size=5, num_features=64),
     ]
 ]

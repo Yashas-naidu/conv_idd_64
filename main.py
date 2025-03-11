@@ -67,7 +67,7 @@ def train():
         dataset_root=args.video_path,
         n_frames_input=args.frames_input,
         n_frames_output=args.frames_output,
-        target_size=64,
+        target_size=128,
         train_split_ratio=0.8,
         seed=random_seed
     )

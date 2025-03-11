@@ -9,7 +9,7 @@ import glob
 
 class IDDTemporalDataset(data.Dataset):
     def __init__(self, sequence_folders, n_frames_input, n_frames_output, 
-                 target_size=64, transform=None, include_sequence_info=False):
+                 target_size=128, transform=None, include_sequence_info=False):
         '''
         Dataset for IDD temporal data with colored (RGB) frames
         
@@ -172,7 +172,7 @@ def create_idd_datasets(
     dataset_root,
     n_frames_input=10,
     n_frames_output=10,
-    target_size=64,
+    target_size=128,
     train_split_ratio=0.8,
     seed=42
 ):
@@ -220,7 +220,7 @@ if __name__ == '__main__':
         dataset_root=dataset_root,
         n_frames_input=10,
         n_frames_output=10,
-        target_size=64,
+        target_size=128,
         train_split_ratio=0.8
     )
 

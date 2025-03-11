@@ -34,9 +34,9 @@ _, val_dataset = create_idd_datasets(
     dataset_root=dataset_root,
     n_frames_input=10,
     n_frames_output=10,
-    target_size=128,
+    target_size=256,
     train_split_ratio=0.8,
-    seed=42
+    seed=None
 )
 
 validLoader = DataLoader(val_dataset, batch_size=4, shuffle=False)

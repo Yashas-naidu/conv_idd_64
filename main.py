@@ -27,7 +27,7 @@ parser.add_argument('-cgru',
                     help='use convgru as base cell',
                     action='store_true')
 parser.add_argument('--batch_size',
-                    default=5,
+                    default=1,
                     type=int,
                     help='mini-batch size')
 parser.add_argument('-lr', default=1e-4, type=float, help='G learning rate')
@@ -67,7 +67,7 @@ def train():
         dataset_root=args.video_path,
         n_frames_input=args.frames_input,
         n_frames_output=args.frames_output,
-        target_size=128,
+        target_size=256,
         train_split_ratio=0.8,
         seed=random_seed
     )

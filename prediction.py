@@ -34,7 +34,7 @@ _, val_dataset = create_idd_datasets(
     dataset_root=dataset_root,
     n_frames_input=10,
     n_frames_output=10,
-    target_size=64,
+    target_size=128,
     train_split_ratio=0.8,
     seed=42
 )

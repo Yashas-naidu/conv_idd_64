@@ -6,12 +6,14 @@ import torch.utils.data as data
 from torch.utils.data import DataLoader
 import random
 import glob
+import matplotlib.pyplot as plt
 
 class IDDTemporalDataset(data.Dataset):
     def __init__(self, sequence_folders, n_frames_input=2, n_frames_output=1, 
-                 frame_stride=5, target_size=256, transform=None, include_sequence_info=False):
+                 frame_stride=5, target_size=256, transform=None, include_sequence_info=False,
+                 motion_threshold=0.01):
         '''
-        Dataset for IDD temporal data with colored (RGB) frames
+        Dataset for IDD temporal data with colored (RGB) frames, filtering sequences with motion
         
         Args:
             sequence_folders: list of paths to sequence folders (e.g., paths to *_leftImg8bit folders)
@@ -21,6 +23,7 @@ class IDDTemporalDataset(data.Dataset):
             target_size: size to resize frames to (square dimensions for the model)
             transform: optional additional transformations
             include_sequence_info: whether to include sequence information in output
+            motion_threshold: threshold for motion detection (fraction of pixels that must change)
         '''
         super(IDDTemporalDataset, self).__init__()
         
@@ -32,14 +35,52 @@ class IDDTemporalDataset(data.Dataset):
         self.target_size = target_size
         self.transform = transform
         self.include_sequence_info = include_sequence_info
+        self.motion_threshold = motion_threshold  # Threshold for motion detection
         
         # Process sequences and build index mapping
         self.sequences = self.process_sequences()
         self.index_mapping = self.create_index_mapping()
         self.length = len(self.index_mapping)
     
+    def detect_motion(self, frames):
+        """Detect motion between frames by calculating pixel differences"""
+        # Resize frames to a smaller size for faster computation
+        small_size = (64, 64)  # Smaller size to speed up computation
+        total_pixels = small_size[0] * small_size[1]
+        
+        # Load and preprocess the first frame
+        prev_frame = cv2.imread(frames[0])
+        if prev_frame is None:
+            return False
+        prev_frame = cv2.resize(prev_frame, small_size)
+        prev_frame = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)  # Convert to grayscale for simplicity
+        
+        # Compare consecutive frames
+        for i in range(1, len(frames)):
+            curr_frame = cv2.imread(frames[i])
+            if curr_frame is None:
+                return False
+            curr_frame = cv2.resize(curr_frame, small_size)
+            curr_frame = cv2.cvtColor(curr_frame, cv2.COLOR_BGR2GRAY)
+            
+            # Compute absolute difference
+            diff = cv2.absdiff(prev_frame, curr_frame)
+            # Threshold the difference (e.g., consider a pixel changed if difference > 30)
+            _, thresh = cv2.threshold(diff, 30, 255, cv2.THRESH_BINARY)
+            # Calculate the fraction of changed pixels
+            changed_pixels = np.sum(thresh) / 255.0
+            fraction_changed = changed_pixels / total_pixels
+            
+            # If enough pixels have changed, consider this sequence as having motion
+            if fraction_changed > self.motion_threshold:
+                return True
+            
+            prev_frame = curr_frame
+        
+        return False
+    
     def process_sequences(self):
-        """Process all sequence folders and identify valid frames"""
+        """Process all sequence folders and identify valid frames with motion"""
         sequences = []
         
         for seq_folder in self.sequence_folders:
@@ -53,17 +94,21 @@ class IDDTemporalDataset(data.Dataset):
             
             # Only include sequences with enough frames (at least 10 frames for stride=5)
             if len(frame_files) >= self.n_frames_total:
-                sequences.append({
-                    'folder': seq_folder,
-                    'frames': frame_files,
-                    'category': category_id,
-                    'sequence': sequence_id,
-                    'name': f"{category_id}_{sequence_id}"
-                })
+                # Check for motion in the sequence
+                if self.detect_motion(frame_files):
+                    sequences.append({
+                        'folder': seq_folder,
+                        'frames': frame_files,
+                        'category': category_id,
+                        'sequence': sequence_id,
+                        'name': f"{category_id}_{sequence_id}"
+                    })
+                else:
+                    print(f"Skipping sequence {seq_folder} due to insufficient motion")
             else:
                 print(f"Warning: Skipping sequence {seq_folder} with only {len(frame_files)} frames (need {self.n_frames_total})")
         
-        print(f"Found {len(sequences)} valid sequences with {self.n_frames_total}+ frames")
+        print(f"Found {len(sequences)} valid sequences with {self.n_frames_total}+ frames and sufficient motion")
         return sequences
     
     def create_index_mapping(self):
@@ -171,9 +216,10 @@ def create_idd_datasets(
     frame_stride=5,  # Added stride parameter
     target_size=256,
     train_split_ratio=0.8,
-    seed=None
+    seed=None,
+    motion_threshold=0.01  # Add motion threshold parameter
 ):
-    """Create train and validation datasets from IDD temporal data"""
+    """Create train and validation datasets from IDD temporal data with motion filtering"""
     # Set random seed for reproducibility
     random.seed(seed)
     
@@ -190,13 +236,15 @@ def create_idd_datasets(
     print(f"Train sequences: {len(train_sequences)}")
     print(f"Validation sequences: {len(val_sequences)}")
     
-    # Create train and validation datasets
+    # Create train and validation datasets with motion filtering
     train_dataset = IDDTemporalDataset(
         sequence_folders=train_sequences,
         n_frames_input=n_frames_input,
         n_frames_output=n_frames_output,
         frame_stride=frame_stride,
-        target_size=target_size
+        target_size=target_size,
+        motion_threshold=motion_threshold,
+        include_sequence_info=True  # Enable to get frame paths for visualization
     )
     
     val_dataset = IDDTemporalDataset(
@@ -204,28 +252,71 @@ def create_idd_datasets(
         n_frames_input=n_frames_input,
         n_frames_output=n_frames_output,
         frame_stride=frame_stride,
-        target_size=target_size
+        target_size=target_size,
+        motion_threshold=motion_threshold,
+        include_sequence_info=True  # Enable to get frame paths for visualization
     )
     
     return train_dataset, val_dataset
+
+def visualize_samples(dataset, num_samples=10):
+    """Visualize a few sample sequences from the dataset"""
+    if len(dataset) == 0:
+        print("Dataset is empty after motion filtering. Try adjusting the motion threshold.")
+        return
+    
+    # Randomly select a few indices to visualize
+    indices = random.sample(range(len(dataset)), min(num_samples, len(dataset)))
+    
+    for idx in indices:
+        # Get the sample
+        sample = dataset[idx]
+        _, output_tensor, input_tensor, _, info = sample
+        
+        # Convert tensors back to numpy for visualization
+        input_frames = input_tensor.numpy().transpose(0, 2, 3, 1)  # (seq_len, 3, H, W) -> (seq_len, H, W, 3)
+        output_frames = output_tensor.numpy().transpose(0, 2, 3, 1)  # (seq_len, 3, H, W) -> (seq_len, H, W, 3)
+        
+        # Create a figure for this sample
+        fig, axes = plt.subplots(1, dataset.n_frames_input + dataset.n_frames_output, figsize=(15, 5))
+        fig.suptitle(f"Sample {idx} - Sequence: {info['sequence_name']}, Frame Index: {info['frame_idx']}")
+        
+        # Plot input frames
+        for i in range(dataset.n_frames_input):
+            axes[i].imshow(input_frames[i])
+            axes[i].set_title(f"Input Frame {(i * dataset.frame_stride)}")
+            axes[i].axis('off')
+        
+        # Plot output frame
+        for i in range(dataset.n_frames_output):
+            axes[dataset.n_frames_input + i].imshow(output_frames[i])
+            axes[dataset.n_frames_input + i].set_title(f"Output Frame {(dataset.n_frames_input + i) * dataset.frame_stride}")
+            axes[dataset.n_frames_input + i].axis('off')
+        
+        plt.show()
 
 # Main execution block
 if __name__ == '__main__':
     # Example usage
     dataset_root = r"C:\Users\YASHAS\capstone\baselines\conv_idd_64\idd_temporal_train_4"  # Path to your dataset
     
-    # Create the datasets
+    # Create the datasets with motion filtering
     train_dataset, val_dataset = create_idd_datasets(
         dataset_root=dataset_root,
         n_frames_input=2,  # 2 input frames
         n_frames_output=1,  # 1 output frame
         frame_stride=5,  # 5 frames apart
         target_size=256,
-        train_split_ratio=0.8
+        train_split_ratio=0.8,
+        motion_threshold=0.1  # Adjust this threshold as needed
     )
 
     print(f"Train dataset size: {len(train_dataset)}")
     print(f"Validation dataset size: {len(val_dataset)}")
+
+    # Visualize a few samples from the training dataset
+    print("Visualizing samples from the training dataset...")
+    visualize_samples(train_dataset, num_samples=10)
 
     # Create DataLoaders for train and validation
     train_dataloader = DataLoader(

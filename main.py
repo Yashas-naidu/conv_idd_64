@@ -44,6 +44,10 @@ parser.add_argument('--video_path',
                     type=str,
                     default=r"C:\Users\YASHAS\capstone\baselines\conv_idd_64\idd_temporal_train_4",
                     help='Path to the input video file or extracted frames directory')
+parser.add_argument('--motion_threshold',
+                    default=0.1,
+                    type=float,
+                    help='Threshold for motion detection (fraction of pixels that must change)')
 args = parser.parse_args()
 
 random_seed = 1996
@@ -70,7 +74,8 @@ def train():
         frame_stride=5,  # Added stride of 5
         target_size=256,
         train_split_ratio=0.8,
-        seed=random_seed
+        seed=random_seed,
+        motion_threshold=args.motion_threshold  # Pass the motion threshold
     )
 
     # Create DataLoaders

@@ -32,11 +32,11 @@ parser.add_argument('--batch_size',
                     help='mini-batch size')
 parser.add_argument('-lr', default=1e-4, type=float, help='G learning rate')
 parser.add_argument('-frames_input',
-                    default=10,
+                    default=2,  # Changed to 2
                     type=int,
                     help='sum of input frames')
 parser.add_argument('-frames_output',
-                    default=10,
+                    default=1,  # Changed to 1
                     type=int,
                     help='sum of predict frames')
 parser.add_argument('-epochs', default=0, type=int, help='sum of epochs')
@@ -65,8 +65,9 @@ def train():
     # Create train and validation datasets using IDDTemporalDataset
     train_dataset, val_dataset = create_idd_datasets(
         dataset_root=args.video_path,
-        n_frames_input=args.frames_input,
-        n_frames_output=args.frames_output,
+        n_frames_input=args.frames_input,  # Now 2
+        n_frames_output=args.frames_output,  # Now 1
+        frame_stride=5,  # Added stride of 5
         target_size=256,
         train_split_ratio=0.8,
         seed=random_seed
@@ -148,11 +149,11 @@ def train():
         ###################
         t = tqdm(trainLoader, leave=False, total=len(trainLoader))
         for i, (idx, targetVar, inputVar, _, _) in enumerate(t):
-            inputs = inputVar.to(device)  # B,S,C,H,W
-            label = targetVar.to(device)  # B,S,C,H,W
+            inputs = inputVar.to(device)  # B,S,C,H,W (S=2 now)
+            label = targetVar.to(device)  # B,S,C,H,W (S=1 now)
             optimizer.zero_grad()
             net.train()
-            pred = net(inputs)  # B,S,C,H,W
+            pred = net(inputs)  # B,S,C,H,W (S=1 now)
             loss = lossfunction(pred, label)
             loss_aver = loss.item() / args.batch_size
             train_losses.append(loss_aver)

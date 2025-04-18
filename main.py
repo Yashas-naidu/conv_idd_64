@@ -1,10 +1,7 @@
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-from encoder import Encoder
-from decoder import Decoder
-from model import ED
-from net_params import convlstm_encoder_params, convlstm_decoder_params, convgru_encoder_params, convgru_decoder_params
-from data import create_idd_datasets  # Import the new dataset creation function
+from model import D3NavIDD  # Import the new model
+from data import create_idd_datasets
 import torch
 from torch import nn
 from torch.optim import lr_scheduler
@@ -16,30 +13,22 @@ import numpy as np
 from tensorboardX import SummaryWriter
 import argparse
 
-TIMESTAMP = "2020-03-09T00-00-00"
+TIMESTAMP = "2023-05-15T00-00-00"
 parser = argparse.ArgumentParser()
-parser.add_argument('-clstm',
-                    '--convlstm',
-                    help='use convlstm as base cell',
-                    action='store_true')
-parser.add_argument('-cgru',
-                    '--convgru',
-                    help='use convgru as base cell',
-                    action='store_true')
 parser.add_argument('--batch_size',
                     default=1,
                     type=int,
                     help='mini-batch size')
-parser.add_argument('-lr', default=1e-4, type=float, help='G learning rate')
+parser.add_argument('-lr', default=1e-4, type=float, help='learning rate')
 parser.add_argument('-frames_input',
-                    default=2,  # Changed to 2
+                    default=2,
                     type=int,
                     help='sum of input frames')
 parser.add_argument('-frames_output',
-                    default=1,  # Changed to 1
+                    default=1,
                     type=int,
                     help='sum of predict frames')
-parser.add_argument('-epochs', default=0, type=int, help='sum of epochs')
+parser.add_argument('-epochs', default=100, type=int, help='sum of epochs')
 parser.add_argument('--video_path', 
                     type=str,
                     default=r"C:\Users\YASHAS\capstone\baselines\conv_idd_64\idd_temporal_train_4",
@@ -48,6 +37,14 @@ parser.add_argument('--motion_threshold',
                     default=0.1,
                     type=float,
                     help='Threshold for motion detection (fraction of pixels that must change)')
+parser.add_argument('--unfrozen_layers',
+                    default=3,
+                    type=int,
+                    help='Number of GPT layers to unfreeze for training')
+parser.add_argument('--target_size',
+                    default=128,
+                    type=int,
+                    help='Image height (width will be 2x height)')
 args = parser.parse_args()
 
 random_seed = 1996
@@ -69,13 +66,13 @@ def train():
     # Create train and validation datasets using IDDTemporalDataset
     train_dataset, val_dataset = create_idd_datasets(
         dataset_root=args.video_path,
-        n_frames_input=args.frames_input,  # Now 2
-        n_frames_output=args.frames_output,  # Now 1
-        frame_stride=5,  # Added stride of 5
-        target_size=256,
+        n_frames_input=args.frames_input,
+        n_frames_output=args.frames_output,
+        frame_stride=5,
+        target_size=args.target_size,  # Height (width will be 2x height)
         train_split_ratio=0.8,
         seed=random_seed,
-        motion_threshold=args.motion_threshold  # Pass the motion threshold
+        motion_threshold=args.motion_threshold
     )
 
     # Create DataLoaders
@@ -83,7 +80,7 @@ def train():
         train_dataset,
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=8,  # Temporarily set to 0 to debug
+        num_workers=4,
         pin_memory=True
     )
 
@@ -91,28 +88,22 @@ def train():
         val_dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=8,  # Temporarily set to 0 to debug
+        num_workers=4,
         pin_memory=True
     )
 
-    if args.convlstm:
-        encoder_params = convlstm_encoder_params
-        decoder_params = convlstm_decoder_params
-    if args.convgru:
-        encoder_params = convgru_encoder_params
-        decoder_params = convgru_decoder_params
-    else:
-        encoder_params = convgru_encoder_params
-        decoder_params = convgru_decoder_params
-
-    encoder = Encoder(encoder_params[0], encoder_params[1]).cuda()
-    decoder = Decoder(decoder_params[0], decoder_params[1]).cuda()
-    net = ED(encoder, decoder)
+    # Initialize D3NavIDD model
+    net = D3NavIDD(
+        temporal_context=args.frames_input,
+        num_unfrozen_layers=args.unfrozen_layers
+    )
+    
     run_dir = './runs/' + TIMESTAMP
     if not os.path.isdir(run_dir):
         os.makedirs(run_dir)
     tb = SummaryWriter(run_dir)
-    # initialize the early_stopping object
+    
+    # Initialize the early_stopping object
     early_stopping = EarlyStopping(patience=20, verbose=True)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -121,23 +112,24 @@ def train():
     net.to(device)
 
     if os.path.exists(os.path.join(save_dir, 'checkpoint.pth.tar')):
-        # load existing model
+        # Load existing model
         print('==> loading existing model')
         model_info = torch.load(os.path.join(save_dir, 'checkpoint.pth.tar'))
         net.load_state_dict(model_info['state_dict'])
-        optimizer = torch.optim.Adam(net.parameters())
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()))
         optimizer.load_state_dict(model_info['optimizer'])
         cur_epoch = model_info['epoch'] + 1
     else:
         if not os.path.isdir(save_dir):
             os.makedirs(save_dir)
         cur_epoch = 0
-    lossfunction = nn.MSELoss().cuda()
-    optimizer = optim.Adam(net.parameters(), lr=args.lr)
+    
+    # Only optimize parameters that require gradients
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=args.lr)
     pla_lr_scheduler = lr_scheduler.ReduceLROnPlateau(optimizer,
                                                       factor=0.5,
                                                       patience=4,
-                                                    )
+                                                     )
 
     # to track the training loss as the model trains
     train_losses = []
@@ -147,29 +139,36 @@ def train():
     avg_train_losses = []
     # to track the average validation loss per epoch as the model trains
     avg_valid_losses = []
-    # mini_val_loss = np.inf
+    
     for epoch in range(cur_epoch, args.epochs + 1):
         ###################
         # train the model #
         ###################
         t = tqdm(trainLoader, leave=False, total=len(trainLoader))
         for i, (idx, targetVar, inputVar, _, _) in enumerate(t):
-            inputs = inputVar.to(device)  # B,S,C,H,W (S=2 now)
-            label = targetVar.to(device)  # B,S,C,H,W (S=1 now)
+            inputs = inputVar.to(device)  # B,S,C,H,W
+            label = targetVar.to(device)  # B,S,C,H,W
+            
             optimizer.zero_grad()
             net.train()
-            pred = net(inputs)  # B,S,C,H,W (S=1 now)
-            loss = lossfunction(pred, label)
+            
+            # Forward pass 
+            pred, gt_reconst, loss = net(inputs, label)
+            
             loss_aver = loss.item() / args.batch_size
             train_losses.append(loss_aver)
+            
             loss.backward()
-            torch.nn.utils.clip_grad_value_(net.parameters(), clip_value=10.0)
+            torch.nn.utils.clip_grad_value_(filter(lambda p: p.requires_grad, net.parameters()), clip_value=10.0)
             optimizer.step()
+            
             t.set_postfix({
                 'trainloss': '{:.6f}'.format(loss_aver),
                 'epoch': '{:02d}'.format(epoch)
             })
+            
         tb.add_scalar('TrainLoss', loss_aver, epoch)
+        
         ######################
         # validate the model #
         ######################
@@ -181,11 +180,14 @@ def train():
                     break
                 inputs = inputVar.to(device)
                 label = targetVar.to(device)
-                pred = net(inputs)
-                loss = lossfunction(pred, label)
+                
+                # Forward pass
+                pred, gt_reconst, loss = net(inputs, label)
+                
                 loss_aver = loss.item() / args.batch_size
                 # record validation loss
                 valid_losses.append(loss_aver)
+                
                 t.set_postfix({
                     'validloss': '{:.6f}'.format(loss_aver),
                     'epoch': '{:02d}'.format(epoch)
@@ -193,8 +195,8 @@ def train():
 
         tb.add_scalar('ValidLoss', loss_aver, epoch)
         torch.cuda.empty_cache()
-        # print training/validation statistics
-        # calculate average loss over an epoch
+        
+        # Calculate average loss over an epoch
         train_loss = np.average(train_losses)
         valid_loss = np.average(valid_losses)
         avg_train_losses.append(train_loss)
@@ -211,6 +213,7 @@ def train():
         train_losses = []
         valid_losses = []
         pla_lr_scheduler.step(valid_loss)  # lr_scheduler
+        
         model_dict = {
             'epoch': epoch,
             'state_dict': net.state_dict(),

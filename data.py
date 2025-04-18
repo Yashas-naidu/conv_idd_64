@@ -124,17 +124,25 @@ class IDDTemporalDataset(data.Dataset):
         
         print(f"Created {len(index_mapping)} valid frame sequences for training/validation")
         return index_mapping
-    
+
+
     def preprocess_frame(self, frame):
-        """Process a frame in RGB"""
+        """Process a frame in RGB format for D3Nav model
+        
+        D3Nav expects images with a height of 128 and width of 256
+        """
         # Convert BGR (OpenCV default) to RGB
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
-        # Resize to target size
-        frame = cv2.resize(frame, (self.target_size, self.target_size))
+        # Resize to target size (D3Nav expects height=128, width=256)
+        # If target_size is set differently, we'll keep the aspect ratio 1:2
+        height = self.target_size  # Default is now 128
+        width = height * 2  # Default is now 256
+        frame = cv2.resize(frame, (width, height))
         
-        # Normalize to 0-1 range
-        frame = frame.astype(np.float32) / 255.0
+        # Normalize to 0-1 range (or 0-255 as needed by D3Nav)
+        # D3Nav might work better with 0-255 range values, so change as needed
+        frame = frame.astype(np.float32)  # Keep as 0-255 range
         
         return frame
     
@@ -211,15 +219,19 @@ def find_all_sequence_folders(dataset_root):
 
 def create_idd_datasets(
     dataset_root,
-    n_frames_input=2,  # Changed to 2
-    n_frames_output=1,  # Changed to 1
-    frame_stride=5,  # Added stride parameter
-    target_size=256,
+    n_frames_input=2,  # Default 2 frames input
+    n_frames_output=1,  # Default 1 frame output
+    frame_stride=5,  # Default stride of 5
+    target_size=128,  # Default height 128 (width will be 256)
     train_split_ratio=0.8,
     seed=None,
-    motion_threshold=0.01  # Add motion threshold parameter
+    motion_threshold=0.01  # Default motion threshold
 ):
-    """Create train and validation datasets from IDD temporal data with motion filtering"""
+    """Create train and validation datasets from IDD temporal data with motion filtering
+    
+    For D3Nav model, target_size should typically be 128 (height) with width 256
+    """
+
     # Set random seed for reproducibility
     random.seed(seed)
     

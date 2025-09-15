@@ -4,7 +4,7 @@ from encoder import Encoder
 from decoder import Decoder
 from model import ED
 from net_params import convlstm_encoder_params, convlstm_decoder_params, convgru_encoder_params, convgru_decoder_params
-from data import create_idd_datasets  # Import the new dataset creation function
+from mixed_dataset import create_mixed_datasets  # Import the mixed dataset creation function
 import torch
 from torch import nn
 from torch.optim import lr_scheduler
@@ -27,7 +27,7 @@ parser.add_argument('-cgru',
                     help='use convgru as base cell',
                     action='store_true')
 parser.add_argument('--batch_size',
-                    default=1,
+                    default=70,
                     type=int,
                     help='mini-batch size')
 parser.add_argument('-lr', default=1e-4, type=float, help='G learning rate')
@@ -39,13 +39,21 @@ parser.add_argument('-frames_output',
                     default=1,  # Changed to 1
                     type=int,
                     help='sum of predict frames')
-parser.add_argument('-epochs', default=0, type=int, help='sum of epochs')
-parser.add_argument('--video_path', 
+parser.add_argument('-epochs', default=50, type=int, help='sum of epochs')
+parser.add_argument('--idd_path', 
                     type=str,
-                    default=r"C:\Users\YASHAS\capstone\baselines\conv_idd_64\idd_temporal_train_4",
-                    help='Path to the input video file or extracted frames directory')
+                    default="/mnt/local/gs_datasets/idd-train-set4/idd_temporal_train_4",
+                    help='Path to the IDD dataset directory')
+parser.add_argument('--japanese_path', 
+                    type=str,
+                    default="/mnt/local/gs_datasets/japanese-streets",
+                    help='Path to the Japanese streets dataset directory')
+parser.add_argument('--vkitti_path', 
+                    type=str,
+                    default="/mnt/local/gs_datasets/vkitti",
+                    help='Path to the vKITTI dataset directory')
 parser.add_argument('--motion_threshold',
-                    default=0.1,
+                    default=0.2,
                     type=float,
                     help='Threshold for motion detection (fraction of pixels that must change)')
 args = parser.parse_args()
@@ -66,16 +74,21 @@ def train():
     '''
     main function to run the training
     '''
-    # Create train and validation datasets using IDDTemporalDataset
-    train_dataset, val_dataset = create_idd_datasets(
-        dataset_root=args.video_path,
+    # Create train and validation datasets using MixedTemporalDataset
+    train_dataset, val_dataset = create_mixed_datasets(
+        idd_root=args.idd_path,
+        japanese_root=args.japanese_path,
+        vkitti_root=args.vkitti_path,
         n_frames_input=args.frames_input,  # Now 2
         n_frames_output=args.frames_output,  # Now 1
         frame_stride=5,  # Added stride of 5
         target_size=256,
         train_split_ratio=0.8,
         seed=random_seed,
-        motion_threshold=args.motion_threshold  # Pass the motion threshold
+        motion_threshold=args.motion_threshold,  # Pass the motion threshold
+        idd_ratio=0.5,  # 50% IDD
+        japanese_ratio=0.3,  # 30% Japanese
+        vkitti_ratio=0.2  # 20% vKITTI
     )
 
     # Create DataLoaders
@@ -83,7 +96,7 @@ def train():
         train_dataset,
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=8,  # Temporarily set to 0 to debug
+        num_workers=40,  # Temporarily set to 0 to debug
         pin_memory=True
     )
 
@@ -91,7 +104,7 @@ def train():
         val_dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=8,  # Temporarily set to 0 to debug
+        num_workers=40,  # Temporarily set to 0 to debug
         pin_memory=True
     )
 

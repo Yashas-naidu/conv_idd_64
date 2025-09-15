@@ -53,7 +53,7 @@ if __name__ == "__main__":
         decoder = nn.DataParallel(decoder)
 
     # Use the updated dataset with 2 input frames and 1 output frame
-    dataset_root = r"C:\Users\YASHAS\capstone\baselines\conv_idd_64\idd_temporal_train_4"
+    dataset_root = "/mnt/local/gs_datasets/idd-train-set4/idd_temporal_train_4"
     train_dataset, _ = create_idd_datasets(
         dataset_root=dataset_root,
         n_frames_input=2,

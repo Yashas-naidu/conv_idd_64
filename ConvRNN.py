@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
     # Test CGRU_cell
     cgru = CGRU_cell(shape=(256, 256), input_channels=3, filter_size=3, num_features=64).cuda()
-    dataset_root = r"C:\Users\YASHAS\capstone\baselines\conv_idd_64\idd_temporal_train_4"
+    dataset_root = "/mnt/local/gs_datasets/idd-train-set4/idd_temporal_train_4"
     train_dataset, _ = create_idd_datasets(
         dataset_root=dataset_root,
         n_frames_input=2,

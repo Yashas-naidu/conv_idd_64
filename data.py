@@ -298,7 +298,7 @@ def visualize_samples(dataset, num_samples=10):
 # Main execution block
 if __name__ == '__main__':
     # Example usage
-    dataset_root = r"C:\Users\YASHAS\capstone\baselines\conv_idd_64\idd_temporal_train_4"  # Path to your dataset
+    dataset_root = "/mnt/local/gs_datasets/idd-train-set4/idd_temporal_train_4"  # Path to your dataset
     
     # Create the datasets with motion filtering
     train_dataset, val_dataset = create_idd_datasets(
@@ -321,16 +321,16 @@ if __name__ == '__main__':
     # Create DataLoaders for train and validation
     train_dataloader = DataLoader(
         train_dataset,
-        batch_size=1,          # Adjust based on your GPU memory
+        batch_size=70,          # Adjust based on your GPU memory
         shuffle=True,
-        num_workers=4,         # For parallel loading
+        num_workers=40,         # For parallel loading
         pin_memory=True        # Speeds up transfer to GPU
     )
 
     val_dataloader = DataLoader(
         val_dataset,
-        batch_size=1,          # Adjust based on your GPU memory
+        batch_size=70,          # Adjust based on your GPU memory
         shuffle=False,
-        num_workers=4,         # For parallel loading
+        num_workers=40,         # For parallel loading
         pin_memory=True        # Speeds up transfer to GPU
     )

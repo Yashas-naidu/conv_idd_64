@@ -1,0 +1,22 @@
+Mixed Dataset Prediction Results
+==================================================
+
+Dataset: IDD
+  Samples processed: 5
+  Average MSE: 0.045177
+  Average PSNR: 14.49 dB
+
+Dataset: JAPANESE
+  Samples processed: 5
+  Average MSE: 0.025595
+  Average PSNR: 15.99 dB
+
+Dataset: VKITTI
+  Samples processed: 5
+  Average MSE: 0.041815
+  Average PSNR: 13.90 dB
+
+Overall Results:
+  Total samples: 15
+  Overall average MSE: 0.037529
+  Overall average PSNR: 14.79 dB

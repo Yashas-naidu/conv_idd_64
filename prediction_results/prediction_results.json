@@ -1,0 +1,446 @@
+[
+  {
+    "dataset": "idd",
+    "num_samples": 20,
+    "avg_mse": 0.0530879981815815,
+    "avg_psnr": 13.260091781616211,
+    "predictions": [
+      {
+        "dataset": "idd",
+        "sequence_name": "436223_leftImg8bit",
+        "frame_idx": 2,
+        "mse": 0.038048550486564636,
+        "psnr": 14.196619987487793
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "836923_leftImg8bit",
+        "frame_idx": 65,
+        "mse": 0.02545958012342453,
+        "psnr": 15.941487312316895
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "429846_leftImg8bit",
+        "frame_idx": 94,
+        "mse": 0.06903844326734543,
+        "psnr": 11.609090805053711
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "562241_leftImg8bit",
+        "frame_idx": 58,
+        "mse": 0.11490532755851746,
+        "psnr": 9.396598815917969
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "900155_leftImg8bit",
+        "frame_idx": 71,
+        "mse": 0.04063081368803978,
+        "psnr": 13.911445617675781
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "836923_leftImg8bit",
+        "frame_idx": 25,
+        "mse": 0.05381454899907112,
+        "psnr": 12.69100284576416
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "900155_leftImg8bit",
+        "frame_idx": 61,
+        "mse": 0.05105104669928551,
+        "psnr": 12.919954299926758
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "429846_leftImg8bit",
+        "frame_idx": 34,
+        "mse": 0.08380118757486343,
+        "psnr": 10.767498970031738
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "179776_leftImg8bit",
+        "frame_idx": 33,
+        "mse": 0.010259742848575115,
+        "psnr": 19.888635635375977
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "742504_leftImg8bit",
+        "frame_idx": 49,
+        "mse": 0.07281128317117691,
+        "psnr": 11.378013610839844
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "742504_leftImg8bit",
+        "frame_idx": 59,
+        "mse": 0.047946419566869736,
+        "psnr": 13.192439079284668
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "561530_leftImg8bit",
+        "frame_idx": 76,
+        "mse": 0.060899510979652405,
+        "psnr": 12.153862953186035
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "962933_leftImg8bit",
+        "frame_idx": 87,
+        "mse": 0.06174144148826599,
+        "psnr": 12.094232559204102
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "742504_leftImg8bit",
+        "frame_idx": 89,
+        "mse": 0.059764835983514786,
+        "psnr": 12.235544204711914
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "742504_leftImg8bit",
+        "frame_idx": 29,
+        "mse": 0.03289837762713432,
+        "psnr": 14.828256607055664
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "900155_leftImg8bit",
+        "frame_idx": 91,
+        "mse": 0.042105261236429214,
+        "psnr": 13.756637573242188
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "429846_leftImg8bit",
+        "frame_idx": 24,
+        "mse": 0.02189922146499157,
+        "psnr": 16.595714569091797
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "436223_leftImg8bit",
+        "frame_idx": 42,
+        "mse": 0.03555561229586601,
+        "psnr": 14.49091911315918
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "742504_leftImg8bit",
+        "frame_idx": 69,
+        "mse": 0.07091382145881653,
+        "psnr": 11.492691040039062
+      },
+      {
+        "dataset": "idd",
+        "sequence_name": "562241_leftImg8bit",
+        "frame_idx": 48,
+        "mse": 0.06821491569280624,
+        "psnr": 11.661206245422363
+      }
+    ]
+  },
+  {
+    "dataset": "japanese",
+    "num_samples": 20,
+    "avg_mse": 0.02824796736240387,
+    "avg_psnr": 16.214868545532227,
+    "predictions": [
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0094",
+        "frame_idx": 23,
+        "mse": 0.02618788182735443,
+        "psnr": 15.81899642944336
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0091",
+        "frame_idx": 82,
+        "mse": 0.014414886943995953,
+        "psnr": 18.411888122558594
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0092",
+        "frame_idx": 30,
+        "mse": 0.009018274955451488,
+        "psnr": 20.44876480102539
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0091",
+        "frame_idx": 22,
+        "mse": 0.013741493225097656,
+        "psnr": 18.619661331176758
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0096",
+        "frame_idx": 74,
+        "mse": 0.030548423528671265,
+        "psnr": 15.150113105773926
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0091",
+        "frame_idx": 12,
+        "mse": 0.014621332287788391,
+        "psnr": 18.35013198852539
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0092",
+        "frame_idx": 80,
+        "mse": 0.010578283108770847,
+        "psnr": 19.755847930908203
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0090",
+        "frame_idx": 8,
+        "mse": 0.040763404220342636,
+        "psnr": 13.897295951843262
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0095",
+        "frame_idx": 31,
+        "mse": 0.051330339163541794,
+        "psnr": 12.896260261535645
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0093",
+        "frame_idx": 25,
+        "mse": 0.020392896607518196,
+        "psnr": 16.905210494995117
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0092",
+        "frame_idx": 10,
+        "mse": 0.009215774945914745,
+        "psnr": 20.35468101501465
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0089",
+        "frame_idx": 77,
+        "mse": 0.04143664613366127,
+        "psnr": 13.826154708862305
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0096",
+        "frame_idx": 14,
+        "mse": 0.022249775007367134,
+        "psnr": 16.526744842529297
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0081",
+        "frame_idx": 36,
+        "mse": 0.015617270953953266,
+        "psnr": 18.063949584960938
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0094",
+        "frame_idx": 43,
+        "mse": 0.05881054326891899,
+        "psnr": 12.305449485778809
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0096",
+        "frame_idx": 54,
+        "mse": 0.02842566929757595,
+        "psnr": 15.46289348602295
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0088",
+        "frame_idx": 49,
+        "mse": 0.06464564055204391,
+        "psnr": 11.894608497619629
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0093",
+        "frame_idx": 15,
+        "mse": 0.03855744004249573,
+        "psnr": 14.13891887664795
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0096",
+        "frame_idx": 34,
+        "mse": 0.03240162879228592,
+        "psnr": 14.894332885742188
+      },
+      {
+        "dataset": "japanese",
+        "sequence_name": "set_0096",
+        "frame_idx": 4,
+        "mse": 0.022001730278134346,
+        "psnr": 16.57543182373047
+      }
+    ]
+  },
+  {
+    "dataset": "vkitti",
+    "num_samples": 20,
+    "avg_mse": 0.042563922703266144,
+    "avg_psnr": 14.647895812988281,
+    "predictions": [
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_1",
+        "frame_idx": 102,
+        "mse": 0.046989817172288895,
+        "psnr": 13.279962539672852
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_1",
+        "frame_idx": 178,
+        "mse": 0.04471268877387047,
+        "psnr": 13.49569320678711
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_0",
+        "frame_idx": 21,
+        "mse": 0.03686117008328438,
+        "psnr": 14.334308624267578
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_1",
+        "frame_idx": 124,
+        "mse": 0.063560850918293,
+        "psnr": 11.968103408813477
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_1",
+        "frame_idx": 76,
+        "mse": 0.04956560954451561,
+        "psnr": 13.048195838928223
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_1",
+        "frame_idx": 44,
+        "mse": 0.060194507241249084,
+        "psnr": 12.204432487487793
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_1",
+        "frame_idx": 38,
+        "mse": 0.05448928847908974,
+        "psnr": 12.636889457702637
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_0",
+        "frame_idx": 143,
+        "mse": 0.06204061210155487,
+        "psnr": 12.073240280151367
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_0",
+        "frame_idx": 165,
+        "mse": 0.05049575865268707,
+        "psnr": 12.967452049255371
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_0",
+        "frame_idx": 45,
+        "mse": 0.08779730647802353,
+        "psnr": 10.565187454223633
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_0",
+        "frame_idx": 101,
+        "mse": 0.051855575293302536,
+        "psnr": 12.852046966552734
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_1",
+        "frame_idx": 6,
+        "mse": 0.025939514860510826,
+        "psnr": 15.860381126403809
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_0",
+        "frame_idx": 109,
+        "mse": 0.027632586658000946,
+        "psnr": 15.585784912109375
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_0",
+        "frame_idx": 161,
+        "mse": 0.025577649474143982,
+        "psnr": 15.921393394470215
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_1",
+        "frame_idx": 190,
+        "mse": 0.002366205444559455,
+        "psnr": 26.259477615356445
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_0",
+        "frame_idx": 125,
+        "mse": 0.06832877546548843,
+        "psnr": 11.65396499633789
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_1",
+        "frame_idx": 60,
+        "mse": 0.02456996589899063,
+        "psnr": 16.09595489501953
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_1",
+        "frame_idx": 100,
+        "mse": 0.037956733256578445,
+        "psnr": 14.207113265991211
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_1",
+        "frame_idx": 112,
+        "mse": 0.006817160174250603,
+        "psnr": 21.66396713256836
+      },
+      {
+        "dataset": "vkitti",
+        "sequence_name": "Camera_0",
+        "frame_idx": 181,
+        "mse": 0.023526690900325775,
+        "psnr": 16.284391403198242
+      }
+    ]
+  }
+]

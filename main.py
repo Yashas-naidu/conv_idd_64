@@ -4,7 +4,10 @@ from encoder import Encoder
 from decoder import Decoder
 from model import ED
 from net_params import convlstm_encoder_params, convlstm_decoder_params, convgru_encoder_params, convgru_decoder_params
-from data import create_idd_datasets  # Import the new dataset creation function
+from data import create_idd_datasets 
+from data_vkitti import create_vkitti_datasets
+from data_japanese import create_japanese_datasets
+from losses import SSIMLoss
 import torch
 from torch import nn
 from torch.optim import lr_scheduler
@@ -14,41 +17,25 @@ from earlystopping import EarlyStopping
 from tqdm import tqdm
 import numpy as np
 from tensorboardX import SummaryWriter
-import argparse
+from datetime import datetime
 
-TIMESTAMP = "2020-03-09T00-00-00"
-parser = argparse.ArgumentParser()
-parser.add_argument('-clstm',
-                    '--convlstm',
-                    help='use convlstm as base cell',
-                    action='store_true')
-parser.add_argument('-cgru',
-                    '--convgru',
-                    help='use convgru as base cell',
-                    action='store_true')
-parser.add_argument('--batch_size',
-                    default=1,
-                    type=int,
-                    help='mini-batch size')
-parser.add_argument('-lr', default=1e-4, type=float, help='G learning rate')
-parser.add_argument('-frames_input',
-                    default=2,  # Changed to 2
-                    type=int,
-                    help='sum of input frames')
-parser.add_argument('-frames_output',
-                    default=1,  # Changed to 1
-                    type=int,
-                    help='sum of predict frames')
-parser.add_argument('-epochs', default=0, type=int, help='sum of epochs')
-parser.add_argument('--video_path', 
-                    type=str,
-                    default=r"C:\Users\YASHAS\capstone\baselines\conv_idd_64\idd_temporal_train_4",
-                    help='Path to the input video file or extracted frames directory')
-parser.add_argument('--motion_threshold',
-                    default=0.1,
-                    type=float,
-                    help='Threshold for motion detection (fraction of pixels that must change)')
-args = parser.parse_args()
+TIMESTAMP = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+IDD_PATH = "/mnt/local/gs_datasets/idd-train-set4/idd_temporal_train_4"
+VKITTI_PATH = "/mnt/local/gs_datasets/vkitti"
+JAPANESE_PATH = "/mnt/local/gs_datasets/japanese-streets"
+
+# Hardcoded training/config parameters
+USE_IDD = False       # Toggle dataset
+USE_VKITTI = False     # Toggle dataset
+USE_JAPANESE = True  # Toggle dataset
+CONVLSTM = True
+CONVGRU = False
+BATCH_SIZE = 2
+LR = 1e-4
+FRAMES_INPUT = 2
+FRAMES_OUTPUT = 1
+EPOCHS = 0
+MOTION_THRESHOLD = 0.1
 
 random_seed = 1996
 np.random.seed(random_seed)
@@ -66,39 +53,68 @@ def train():
     '''
     main function to run the training
     '''
-    # Create train and validation datasets using IDDTemporalDataset
-    train_dataset, val_dataset = create_idd_datasets(
-        dataset_root=args.video_path,
-        n_frames_input=args.frames_input,  # Now 2
-        n_frames_output=args.frames_output,  # Now 1
-        frame_stride=5,  # Added stride of 5
-        target_size=256,
-        train_split_ratio=0.8,
-        seed=random_seed,
-        motion_threshold=args.motion_threshold  # Pass the motion threshold
-    )
+    # Ensure exactly one dataset is selected
+    if sum([USE_IDD, USE_VKITTI, USE_JAPANESE]) != 1:
+        raise ValueError("Exactly one of USE_IDD, USE_VKITTI, USE_JAPANESE must be True.")
+
+    # Create train and validation datasets
+    if USE_VKITTI:
+        train_dataset, val_dataset = create_vkitti_datasets(
+            dataset_root=VKITTI_PATH,
+            n_frames_input=FRAMES_INPUT,
+            n_frames_output=FRAMES_OUTPUT,
+            frame_stride=5,
+            target_size=512,
+            train_split_ratio=0.8,
+            seed=random_seed,
+            motion_threshold=MOTION_THRESHOLD,
+        )
+    elif USE_JAPANESE:
+        train_dataset, val_dataset = create_japanese_datasets(
+            dataset_root=JAPANESE_PATH,
+            n_frames_input=FRAMES_INPUT,
+            n_frames_output=FRAMES_OUTPUT,
+            frame_stride=5,
+            target_size=512,
+            train_split_ratio=0.8,
+            seed=random_seed,
+            motion_threshold=MOTION_THRESHOLD,
+        )
+    elif USE_IDD:
+        train_dataset, val_dataset = create_idd_datasets(
+            dataset_root=IDD_PATH,
+            n_frames_input=FRAMES_INPUT,
+            n_frames_output=FRAMES_OUTPUT,
+            frame_stride=5,
+            target_size=512,
+            train_split_ratio=0.8,
+            seed=random_seed,
+            motion_threshold=MOTION_THRESHOLD,
+        )
+    else:
+        raise RuntimeError("Dataset toggle configuration invalid.")
 
     # Create DataLoaders
     trainLoader = torch.utils.data.DataLoader(
         train_dataset,
-        batch_size=args.batch_size,
+        batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=8,  # Temporarily set to 0 to debug
+        num_workers=20,  # Temporarily set to 0 to debug
         pin_memory=True
     )
 
     validLoader = torch.utils.data.DataLoader(
         val_dataset,
-        batch_size=args.batch_size,
+        batch_size=BATCH_SIZE,
         shuffle=False,
-        num_workers=8,  # Temporarily set to 0 to debug
+        num_workers=20,  # Temporarily set to 0 to debug
         pin_memory=True
     )
 
-    if args.convlstm:
+    if CONVLSTM:
         encoder_params = convlstm_encoder_params
         decoder_params = convlstm_decoder_params
-    if args.convgru:
+    if CONVGRU:
         encoder_params = convgru_encoder_params
         decoder_params = convgru_decoder_params
     else:
@@ -132,8 +148,8 @@ def train():
         if not os.path.isdir(save_dir):
             os.makedirs(save_dir)
         cur_epoch = 0
-    lossfunction = nn.MSELoss().cuda()
-    optimizer = optim.Adam(net.parameters(), lr=args.lr)
+    lossfunction = SSIMLoss().cuda()
+    optimizer = optim.Adam(net.parameters(), lr=LR)
     pla_lr_scheduler = lr_scheduler.ReduceLROnPlateau(optimizer,
                                                       factor=0.5,
                                                       patience=4,
@@ -148,7 +164,7 @@ def train():
     # to track the average validation loss per epoch as the model trains
     avg_valid_losses = []
     # mini_val_loss = np.inf
-    for epoch in range(cur_epoch, args.epochs + 1):
+    for epoch in range(cur_epoch, EPOCHS + 1):
         ###################
         # train the model #
         ###################
@@ -160,7 +176,7 @@ def train():
             net.train()
             pred = net(inputs)  # B,S,C,H,W (S=1 now)
             loss = lossfunction(pred, label)
-            loss_aver = loss.item() / args.batch_size
+            loss_aver = loss.item() / BATCH_SIZE
             train_losses.append(loss_aver)
             loss.backward()
             torch.nn.utils.clip_grad_value_(net.parameters(), clip_value=10.0)
@@ -183,7 +199,7 @@ def train():
                 label = targetVar.to(device)
                 pred = net(inputs)
                 loss = lossfunction(pred, label)
-                loss_aver = loss.item() / args.batch_size
+                loss_aver = loss.item() / BATCH_SIZE
                 # record validation loss
                 valid_losses.append(loss_aver)
                 t.set_postfix({
@@ -200,9 +216,9 @@ def train():
         avg_train_losses.append(train_loss)
         avg_valid_losses.append(valid_loss)
 
-        epoch_len = len(str(args.epochs))
+        epoch_len = len(str(EPOCHS))
 
-        print_msg = (f'[{epoch:>{epoch_len}}/{args.epochs:>{epoch_len}}] ' +
+        print_msg = (f'[{epoch:>{epoch_len}}/{EPOCHS:>{epoch_len}}] ' +
                      f'train_loss: {train_loss:.6f} ' +
                      f'valid_loss: {valid_loss:.6f}')
 

@@ -9,9 +9,9 @@ convlstm_encoder_params = [
     ],
 
     [
-        CLSTM_cell(shape=(256, 256), input_channels=16, filter_size=5, num_features=64),  # Change shape to (256, 256)
-        CLSTM_cell(shape=(128, 128), input_channels=64, filter_size=5, num_features=96),   # Change shape to (128, 128)
-        CLSTM_cell(shape=(64, 64), input_channels=96, filter_size=5, num_features=96)     # Change shape to (64, 64)
+        CLSTM_cell(shape=(512, 512), input_channels=16, filter_size=5, num_features=64),  # updated for 512
+        CLSTM_cell(shape=(256, 256), input_channels=64, filter_size=5, num_features=96),   # updated pyramid
+        CLSTM_cell(shape=(128, 128), input_channels=96, filter_size=5, num_features=96)    # updated pyramid
     ]
 ]
 
@@ -26,9 +26,9 @@ convlstm_decoder_params = [
     ],
 
     [
-        CLSTM_cell(shape=(64, 64), input_channels=96, filter_size=5, num_features=96),    # Change shape to (64, 64)
-        CLSTM_cell(shape=(128, 128), input_channels=96, filter_size=5, num_features=96),   # Change shape to (128, 128)
-        CLSTM_cell(shape=(256, 256), input_channels=96, filter_size=5, num_features=64)    # Change shape to (256, 256)
+        CLSTM_cell(shape=(128, 128), input_channels=96, filter_size=5, num_features=96),
+        CLSTM_cell(shape=(256, 256), input_channels=96, filter_size=5, num_features=96),
+        CLSTM_cell(shape=(512, 512), input_channels=96, filter_size=5, num_features=64)
     ]
 ]
 
@@ -40,9 +40,9 @@ convgru_encoder_params = [
     ],
 
     [
-        CGRU_cell(shape=(256, 256), input_channels=16, filter_size=5, num_features=64),    # Change shape to (256, 256)
-        CGRU_cell(shape=(128, 128), input_channels=64, filter_size=5, num_features=96),    # Change shape to (128, 128)
-        CGRU_cell(shape=(64, 64), input_channels=96, filter_size=5, num_features=96)       # Change shape to (64, 64)
+        CGRU_cell(shape=(512, 512), input_channels=16, filter_size=5, num_features=64),
+        CGRU_cell(shape=(256, 256), input_channels=64, filter_size=5, num_features=96),
+        CGRU_cell(shape=(128, 128), input_channels=96, filter_size=5, num_features=96)
     ]
 ]
 
@@ -57,8 +57,8 @@ convgru_decoder_params = [
     ],
 
     [
-        CGRU_cell(shape=(64, 64), input_channels=96, filter_size=5, num_features=96),     # Change shape to (64, 64)
-        CGRU_cell(shape=(128, 128), input_channels=96, filter_size=5, num_features=96),    # Change shape to (128, 128)
-        CGRU_cell(shape=(256, 256), input_channels=96, filter_size=5, num_features=64)     # Change shape to (256, 256)
+        CGRU_cell(shape=(128, 128), input_channels=96, filter_size=5, num_features=96),
+        CGRU_cell(shape=(256, 256), input_channels=96, filter_size=5, num_features=96),
+        CGRU_cell(shape=(512, 512), input_channels=96, filter_size=5, num_features=64)
     ]
 ]
